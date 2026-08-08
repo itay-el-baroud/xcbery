@@ -29,13 +29,12 @@ fun NewsMeApp() {
     var isLoggedIn by remember { mutableStateOf(false) }
     var authScreen by remember { mutableStateOf("login") }
     var loggedEmail by remember { mutableStateOf("") }
-
     MaterialTheme {
         if (!isLoggedIn) {
             when (authScreen) {
-                "login" -> LoginScreen(onLoginSuccess = { email -> loggedEmail = email; isLoggedIn = true }, onGoRegister = { authScreen = "register" }, onGoVerify = { email -> loggedEmail = email; authScreen = "verify" })
-                "register" -> RegisterScreen(onRegistered = { email -> loggedEmail = email; authScreen = "verify" }, onBack = { authScreen = "login" })
-                "verify" -> VerifyScreen(email = loggedEmail, onVerified = { isLoggedIn = true }, onBack = { authScreen = "login" })
+                "login" -> LoginScreen({ email -> loggedEmail = email; isLoggedIn = true }, { authScreen = "register" }, { email -> loggedEmail = email; authScreen = "verify" })
+                "register" -> RegisterScreen({ email -> loggedEmail = email; authScreen = "verify" }, { authScreen = "login" })
+                "verify" -> VerifyScreen(loggedEmail, { isLoggedIn = true }, { authScreen = "login" })
             }
         } else {
             MainWithBottomNav(loggedEmail) { isLoggedIn = false }
@@ -51,14 +50,12 @@ fun LoginScreen(onLoginSuccess: (String) -> Unit, onGoRegister: () -> Unit, onGo
     var loading by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
-
-    Scaffold(topBar = { TopAppBar(title = { Text("تسجيل الدخول - مربوط بالسيرفر") }) }) { p ->
+    Scaffold(topBar = { TopAppBar(title = { Text("دخول حقيقي - السيرفر") }) }) { p ->
         Column(Modifier.fillMaxSize().padding(p).padding(24.dp), Arrangement.Center) {
             OutlinedTextField(email, { email = it }, label = { Text("الايميل") }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(12.dp))
-            OutlinedTextField(password, { password = it }, label = { Text("كلمة السر") }, modifier = Modifier.fillMaxWidth())
-            if (msg.isNotEmpty()) { Spacer(Modifier.height(8.dp)); Text(msg, color = MaterialTheme.colorScheme.error) }
-            Spacer(Modifier.height(24.dp))
+            OutlinedTextField(password, { password = it }, label = { Text("الباسورد") }, modifier = Modifier.fillMaxWidth())
+            if (msg.isNotEmpty()) { Text(msg, color = MaterialTheme.colorScheme.error) }
+            Spacer(Modifier.height(16.dp))
             Button(onClick = {
                 loading = true; msg = ""
                 scope.launch {
@@ -66,9 +63,9 @@ fun LoginScreen(onLoginSuccess: (String) -> Unit, onGoRegister: () -> Unit, onGo
                     loading = false
                     if (res.success) onLoginSuccess(email) else msg = res.message
                 }
-            }, modifier = Modifier.fillMaxWidth(), enabled = !loading) { Text(if (loading) "جاري الدخول..." else "دخول حقيقي للسيرفر") }
-            TextButton(onClick = onGoRegister, modifier = Modifier.fillMaxWidth()) { Text("انشاء حساب جديد - register.php") }
-            TextButton(onClick = { if(email.isNotEmpty()) onGoVerify(email) }, modifier = Modifier.fillMaxWidth()) { Text("عندي كود تحقق") }
+            }, modifier = Modifier.fillMaxWidth(), enabled = !loading) { Text(if (loading) "جاري..." else "دخول حقيقي login.php") }
+            TextButton(onClick = onGoRegister, modifier = Modifier.fillMaxWidth()) { Text("انشاء حساب register.php") }
+            TextButton(onClick = { if (email.isNotEmpty()) onGoVerify(email) }, modifier = Modifier.fillMaxWidth()) { Text("كود تحقق") }
         }
     }
 }
@@ -82,14 +79,13 @@ fun RegisterScreen(onRegistered: (String) -> Unit, onBack: () -> Unit) {
     var loading by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
-
-    Scaffold(topBar = { TopAppBar(title = { Text("انشاء حساب - register.php") }) }) { p ->
+    Scaffold(topBar = { TopAppBar(title = { Text("حساب جديد register.php") }) }) { p ->
         Column(Modifier.fillMaxSize().padding(p).padding(24.dp), Arrangement.Center) {
             OutlinedTextField(name, { name = it }, label = { Text("الاسم") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(email, { email = it }, label = { Text("الايميل") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(password, { password = it }, label = { Text("كلمة السر") }, modifier = Modifier.fillMaxWidth())
-            if (msg.isNotEmpty()) { Spacer(Modifier.height(8.dp)); Text(msg) }
-            Spacer(Modifier.height(24.dp))
+            OutlinedTextField(password, { password = it }, label = { Text("الباسورد") }, modifier = Modifier.fillMaxWidth())
+            if (msg.isNotEmpty()) Text(msg)
+            Spacer(Modifier.height(16.dp))
             Button(onClick = {
                 loading = true
                 scope.launch {
@@ -98,11 +94,9 @@ fun RegisterScreen(onRegistered: (String) -> Unit, onBack: () -> Unit) {
                         ApiClient.sendOtp(email)
                         loading = false
                         onRegistered(email)
-                    } else {
-                        loading = false; msg = reg.message
-                    }
+                    } else { loading = false; msg = reg.message }
                 }
-            }, modifier = Modifier.fillMaxWidth(), enabled = !loading) { Text("تسجيل وارسال كود OTP") }
+            }, modifier = Modifier.fillMaxWidth(), enabled = !loading) { Text("تسجيل + ارسال OTP") }
             TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("رجوع") }
         }
     }
@@ -115,14 +109,12 @@ fun VerifyScreen(email: String, onVerified: () -> Unit, onBack: () -> Unit) {
     var msg by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-
-    Scaffold(topBar = { TopAppBar(title = { Text("كود التحقق - $email") }) }) { p ->
+    Scaffold(topBar = { TopAppBar(title = { Text("تأكيد $email") }) }) { p ->
         Column(Modifier.fillMaxSize().padding(p).padding(24.dp), Arrangement.Center, Alignment.CenterHorizontally) {
-            Text("الكود وصل على $email من send_email.php")
+            Text("الكود وصل من send_email.php")
+            OutlinedTextField(code, { if (it.length <= 6) code = it }, label = { Text("الكود") })
+            if (msg.isNotEmpty()) Text(msg)
             Spacer(Modifier.height(16.dp))
-            OutlinedTextField(code, { if(it.length <= 6) code = it }, label = { Text("الكود") })
-            if (msg.isNotEmpty()) { Spacer(Modifier.height(8.dp)); Text(msg) }
-            Spacer(Modifier.height(24.dp))
             Button(onClick = {
                 loading = true
                 scope.launch {
@@ -130,7 +122,7 @@ fun VerifyScreen(email: String, onVerified: () -> Unit, onBack: () -> Unit) {
                     loading = false
                     if (res.success) onVerified() else msg = res.message
                 }
-            }, modifier = Modifier.fillMaxWidth(), enabled = !loading) { Text("تأكيد الكود - verification.php") }
+            }, modifier = Modifier.fillMaxWidth(), enabled = !loading) { Text("تأكيد verification.php") }
             TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("رجوع") }
         }
     }
@@ -140,25 +132,20 @@ fun VerifyScreen(email: String, onVerified: () -> Unit, onBack: () -> Unit) {
 @Composable
 fun MainWithBottomNav(email: String, onLogout: () -> Unit) {
     val navController = rememberNavController()
-    var selectedRoute by remember { mutableStateOf("home") }
-
+    var selected by remember { mutableStateOf("home") }
     Scaffold(
         topBar = { TopAppBar(title = { Text("نيوز مي - $email") }) },
         bottomBar = {
             NavigationBar {
-                NavigationBarItem(selected = selectedRoute == "home", onClick = { selectedRoute = "home"; navController.navigate("home") }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("الرئيسية") })
-                NavigationBarItem(selected = selectedRoute == "search", onClick = { selectedRoute = "search"; navController.navigate("search") }, icon = { Icon(Icons.Default.Search, null) }, label = { Text("بحث") })
-                NavigationBarItem(selected = selectedRoute == "add", onClick = { selectedRoute = "add"; navController.navigate("add") }, icon = { Icon(Icons.Default.AddCircle, null) }, label = { Text("اضافة") })
-                NavigationBarItem(selected = selectedRoute == "notifications", onClick = { selectedRoute = "notifications"; navController.navigate("notifications") }, icon = { Icon(Icons.Default.Notifications, null) }, label = { Text("اشعارات") })
-                NavigationBarItem(selected = selectedRoute == "settings", onClick = { selectedRoute = "settings"; navController.navigate("settings") }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("اعدادات") })
+                NavigationBarItem(selected = selected == "home", onClick = { selected = "home"; navController.navigate("home") }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("الرئيسية") })
+                NavigationBarItem(selected = selected == "add", onClick = { selected = "add"; navController.navigate("add") }, icon = { Icon(Icons.Default.AddCircle, null) }, label = { Text("اضافة") })
+                NavigationBarItem(selected = selected == "settings", onClick = { selected = "settings"; navController.navigate("settings") }, icon = { Icon(Icons.Default.Settings, null) }, label = { Text("اعدادات") })
             }
         }
     ) { pad ->
         NavHost(navController, startDestination = "home", modifier = Modifier.padding(pad)) {
-            composable("home") { Box(Modifier.fillMaxSize(), Alignment.Center) { Text("مرحبا $email - الرئيسية مربوطة بالسيرفر") } }
-            composable("search") { Box(Modifier.fillMaxSize(), Alignment.Center) { Text("البحث") } }
-            composable("add") { Box(Modifier.fillMaxSize(), Alignment.Center) { Text("اضافة خبر - هيتخزن في uploads") } }
-            composable("notifications") { Box(Modifier.fillMaxSize(), Alignment.Center) { Text("الاشعارات") } }
+            composable("home") { Box(Modifier.fillMaxSize(), Alignment.Center) { Text("مرحبا $email - مربوط بالسيرفر الحقيقي") } }
+            composable("add") { Box(Modifier.fillMaxSize(), Alignment.Center) { Text("اضافة خبر - uploads") } }
             composable("settings") { Column(Modifier.fillMaxSize().padding(24.dp), Arrangement.Center, Alignment.CenterHorizontally) { Button(onClick = onLogout) { Text("خروج") } } }
         }
     }
